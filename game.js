@@ -84,23 +84,16 @@ function isOnSnake(position) {
 }
 
 // ---- Input handling -----------------------------------------
-// We don't change `direction` directly on keypress. Instead we
-// store the requested direction in `nextDirection` and only apply
-// it on the next tick (in update()). This avoids bugs where a
-// player could press two keys between ticks and reverse directly
-// into the snake's own neck.
-document.addEventListener("keydown", handleKeydown);
-
-function handleKeydown(event) {
-  const keyToDirection = {
-    ArrowUp: { x: 0, y: -1 },
-    ArrowDown: { x: 0, y: 1 },
-    ArrowLeft: { x: -1, y: 0 },
-    ArrowRight: { x: 1, y: 0 },
-  };
-
-  const requested = keyToDirection[event.key];
-  if (!requested) return; // ignore any key that isn't an arrow key
+// We don't change `direction` directly when a key is pressed or a
+// swipe is detected. Instead we store the requested direction in
+// `nextDirection` and only apply it on the next tick (in update()).
+// This avoids bugs where a player could trigger two inputs between
+// ticks and reverse directly into the snake's own neck.
+//
+// Both keyboard and touch input funnel through this single function,
+// so the "is this a legal move?" rule only has to live in one place.
+function setDirection(requested) {
+  if (!requested) return;
 
   // Prevent reversing directly into yourself (e.g. pressing Left
   // while moving Right). Moving at a right angle is always fine.
@@ -114,6 +107,62 @@ function handleKeydown(event) {
   if (isGameOver) {
     resetGame();
   }
+}
+
+// ---- Keyboard controls -----------------------------------------
+document.addEventListener("keydown", handleKeydown);
+
+function handleKeydown(event) {
+  const keyToDirection = {
+    ArrowUp: { x: 0, y: -1 },
+    ArrowDown: { x: 0, y: 1 },
+    ArrowLeft: { x: -1, y: 0 },
+    ArrowRight: { x: 1, y: 0 },
+  };
+
+  const requested = keyToDirection[event.key];
+  if (!requested) return; // ignore any key that isn't an arrow key
+
+  setDirection(requested);
+}
+
+// ---- Touch / swipe controls -----------------------------------------
+// We don't have arrow keys on a phone, so instead we track where a
+// touch begins and where it ends, then work out the swipe direction
+// from the difference between those two points.
+const MIN_SWIPE_DISTANCE = 20; // pixels; filters out accidental taps/jitter
+let touchStartX = 0;
+let touchStartY = 0;
+
+canvas.addEventListener("touchstart", handleTouchStart, { passive: true });
+canvas.addEventListener("touchend", handleTouchEnd, { passive: true });
+
+function handleTouchStart(event) {
+  const touch = event.changedTouches[0];
+  touchStartX = touch.clientX;
+  touchStartY = touch.clientY;
+}
+
+function handleTouchEnd(event) {
+  const touch = event.changedTouches[0];
+  const deltaX = touch.clientX - touchStartX;
+  const deltaY = touch.clientY - touchStartY;
+
+  // Ignore tiny movements so a simple tap doesn't get misread as a swipe.
+  if (Math.abs(deltaX) < MIN_SWIPE_DISTANCE && Math.abs(deltaY) < MIN_SWIPE_DISTANCE) {
+    return;
+  }
+
+  // Whichever axis moved further decides if this was a horizontal
+  // or vertical swipe; the sign of that delta decides which way.
+  let requested;
+  if (Math.abs(deltaX) > Math.abs(deltaY)) {
+    requested = deltaX > 0 ? { x: 1, y: 0 } : { x: -1, y: 0 }; // right : left
+  } else {
+    requested = deltaY > 0 ? { x: 0, y: 1 } : { x: 0, y: -1 }; // down : up
+  }
+
+  setDirection(requested);
 }
 
 // ---- Main loop -----------------------------------------

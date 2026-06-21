@@ -9,4 +9,17 @@ body {
 canvas {
   background-color: #000000;
   border: 2px solid #4caf50;
+
+  /* The canvas keeps its internal drawing grid at a fixed 400x400
+     resolution (set via the width/height attributes in index.html).
+     Here we only control its on-screen *display* size, scaling it
+     to fit smaller screens while staying a square and never
+     exceeding its native 400px size on larger screens. */
+  width: min(90vw, 90vh, 400px);
+  height: min(90vw, 90vh, 400px);
+
+  /* Stops the browser from scrolling/zooming the page when the
+     player swipes on the canvas — we want swipes to control the
+     snake, not the page. */
+  touch-action: none;
 }
