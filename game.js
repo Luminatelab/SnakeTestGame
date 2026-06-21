@@ -30,7 +30,7 @@ const COLOR_BACKGROUND = "#000000";
 const statusEl = document.getElementById("status");
 const startButton = document.getElementById("startButton");
 const muteButton = document.getElementById("muteButton");
-const menuMusic = document.getElementById("menuMusic");
+const backgroundMusic = document.getElementById("backgroundMusic");
 const eatSound = document.getElementById("eatSound");
 const gameOverSound = document.getElementById("gameOverSound");
 
@@ -40,11 +40,18 @@ const gameOverSound = document.getElementById("gameOverSound");
 // until the user has clicked/tapped/pressed a key at least once —
 // that's why music only starts from the Start button's click
 // handler, never automatically on page load.
+//
+// backgroundMusic plays continuously through both the menu and
+// actual gameplay — we just turn its volume down once the snake
+// starts moving, so it sits quietly behind the sound effects
+// instead of stopping and restarting.
+const MENU_MUSIC_VOLUME = 1.0;
+const GAMEPLAY_MUSIC_VOLUME = 0.35;
 const MUTE_KEY = "snakeMuted";
 let isMuted = localStorage.getItem(MUTE_KEY) === "true";
 
 function applyMuteState() {
-  [menuMusic, eatSound, gameOverSound].forEach((audio) => {
+  [backgroundMusic, eatSound, gameOverSound].forEach((audio) => {
     audio.muted = isMuted;
   });
   muteButton.textContent = isMuted ? "🔇 Unmute" : "🔊 Mute";
@@ -172,15 +179,18 @@ function setDirection(requested) {
   }
 }
 
-// Called the moment the player actually starts playing: stop the
-// menu music, hide the Start button, and kick off a fresh game
-// already moving in the requested direction.
+// Called the moment the player actually starts playing: hide the
+// Start button, lower the music to its quieter "in-game" volume
+// (rather than stopping it), and kick off a fresh game already
+// moving in the requested direction.
 function beginPlaying(requested) {
   isMenuActive = false;
   startButton.hidden = true;
 
-  menuMusic.pause();
-  menuMusic.currentTime = 0;
+  backgroundMusic.volume = GAMEPLAY_MUSIC_VOLUME;
+  // In case the player moved before ever clicking Start, the music
+  // won't have started yet — start it now instead of leaving it silent.
+  backgroundMusic.play().catch(() => {});
 
   resetGame();
   nextDirection = requested;
@@ -189,7 +199,8 @@ function beginPlaying(requested) {
 startButton.addEventListener("click", () => {
   // This click is the "user interaction" browsers require before
   // any audio is allowed to play.
-  menuMusic.play().catch(() => {});
+  backgroundMusic.volume = MENU_MUSIC_VOLUME;
+  backgroundMusic.play().catch(() => {});
   startButton.hidden = true;
   statusEl.textContent = "Press an arrow key or swipe to play!";
 });
