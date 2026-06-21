@@ -137,6 +137,17 @@ let touchStartY = 0;
 canvas.addEventListener("touchstart", handleTouchStart, { passive: true });
 canvas.addEventListener("touchend", handleTouchEnd, { passive: true });
 
+// Some mobile browsers (notably iOS Safari) still try to scroll the
+// page during a touch drag even with `touch-action: none` in CSS.
+// Explicitly blocking the default action on touchmove is the
+// reliable cross-browser way to stop that. This listener must be
+// "non-passive" (passive: false) for preventDefault() to take effect.
+canvas.addEventListener(
+  "touchmove",
+  (event) => event.preventDefault(),
+  { passive: false }
+);
+
 function handleTouchStart(event) {
   const touch = event.changedTouches[0];
   touchStartX = touch.clientX;
