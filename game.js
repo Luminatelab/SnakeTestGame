@@ -45,6 +45,32 @@ const gameOverSound = document.getElementById("gameOverSound");
 // actual gameplay — we just turn its volume down once the snake
 // starts moving, so it sits quietly behind the sound effects
 // instead of stopping and restarting.
+//
+// iOS Safari has a quirk: it ignores `audio.volume` set from
+// JavaScript entirely (it always plays <audio> elements at full
+// hardware volume). The reliable, cross-browser way to control
+// volume in code is the Web Audio API's GainNode, which iOS does
+// respect — so we route backgroundMusic through one of those
+// instead of setting its .volume property directly.
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+const musicGainNode = audioContext.createGain();
+audioContext
+  .createMediaElementSource(backgroundMusic)
+  .connect(musicGainNode)
+  .connect(audioContext.destination);
+
+function setMusicVolume(value) {
+  musicGainNode.gain.value = value;
+}
+
+// AudioContext also starts "suspended" until a user gesture resumes
+// it — same underlying browser rule as the play() restriction below.
+function unlockAudio() {
+  if (audioContext.state === "suspended") {
+    audioContext.resume();
+  }
+}
+
 const MENU_MUSIC_VOLUME = 1.0;
 const GAMEPLAY_MUSIC_VOLUME = 0.0875; // 75% quieter than before (was 0.35)
 const MUTE_KEY = "snakeMuted";
@@ -187,7 +213,8 @@ function beginPlaying(requested) {
   isMenuActive = false;
   startButton.hidden = true;
 
-  backgroundMusic.volume = GAMEPLAY_MUSIC_VOLUME;
+  unlockAudio();
+  setMusicVolume(GAMEPLAY_MUSIC_VOLUME);
   // In case the player moved before ever clicking Start, the music
   // won't have started yet — start it now instead of leaving it silent.
   backgroundMusic.play().catch(() => {});
@@ -199,7 +226,8 @@ function beginPlaying(requested) {
 startButton.addEventListener("click", () => {
   // This click is the "user interaction" browsers require before
   // any audio is allowed to play.
-  backgroundMusic.volume = MENU_MUSIC_VOLUME;
+  unlockAudio();
+  setMusicVolume(MENU_MUSIC_VOLUME);
   backgroundMusic.play().catch(() => {});
   startButton.hidden = true;
   statusEl.textContent = "Press an arrow key or swipe to play!";
