@@ -28,6 +28,44 @@ const COLOR_BACKGROUND = "#000000";
 // the score and any messages (like "Game Over"), so the canvas
 // only has to worry about drawing the game itself.
 const statusEl = document.getElementById("status");
+const startButton = document.getElementById("startButton");
+const muteButton = document.getElementById("muteButton");
+const menuMusic = document.getElementById("menuMusic");
+const eatSound = document.getElementById("eatSound");
+const gameOverSound = document.getElementById("gameOverSound");
+
+// ---- Audio / mute -----------------------------------------
+// All three <audio> elements live in index.html; here we just
+// control *when* they play. Browsers refuse to play any sound
+// until the user has clicked/tapped/pressed a key at least once —
+// that's why music only starts from the Start button's click
+// handler, never automatically on page load.
+const MUTE_KEY = "snakeMuted";
+let isMuted = localStorage.getItem(MUTE_KEY) === "true";
+
+function applyMuteState() {
+  [menuMusic, eatSound, gameOverSound].forEach((audio) => {
+    audio.muted = isMuted;
+  });
+  muteButton.textContent = isMuted ? "🔇 Unmute" : "🔊 Mute";
+}
+applyMuteState();
+
+muteButton.addEventListener("click", () => {
+  isMuted = !isMuted;
+  localStorage.setItem(MUTE_KEY, String(isMuted));
+  applyMuteState();
+});
+
+// Plays a short sound effect from the start, even if it was already
+// playing a moment ago (e.g. eating food twice quickly).
+function playSound(audio) {
+  audio.currentTime = 0;
+  audio.play().catch(() => {
+    // Ignore errors here — e.g. the audio file is missing, or the
+    // browser blocked it. The game should keep working either way.
+  });
+}
 
 // ---- Game state ------------------------------------------
 // All of these change as the game is played. Keeping them as
@@ -40,6 +78,7 @@ let food;         // {x, y} position of the food
 let score;
 let isGameOver;
 let loopIntervalId; // handle returned by setInterval, used to stop the loop
+let isMenuActive = true; // true until the player's very first move
 
 // ---- High score (persisted in the browser) -----------------------------------------
 // localStorage saves simple key/value data directly in the browser,
@@ -112,6 +151,13 @@ function isOnSnake(position) {
 function setDirection(requested) {
   if (!requested) return;
 
+  // The very first arrow key / swipe is what actually starts the
+  // game, whether or not the player clicked the Start button first.
+  if (isMenuActive) {
+    beginPlaying(requested);
+    return;
+  }
+
   // Prevent reversing directly into yourself (e.g. pressing Left
   // while moving Right). Moving at a right angle is always fine.
   const isReverse =
@@ -124,6 +170,42 @@ function setDirection(requested) {
   if (isGameOver) {
     resetGame();
   }
+}
+
+// Called the moment the player actually starts playing: stop the
+// menu music, hide the Start button, and kick off a fresh game
+// already moving in the requested direction.
+function beginPlaying(requested) {
+  isMenuActive = false;
+  startButton.hidden = true;
+
+  menuMusic.pause();
+  menuMusic.currentTime = 0;
+
+  resetGame();
+  nextDirection = requested;
+}
+
+startButton.addEventListener("click", () => {
+  // This click is the "user interaction" browsers require before
+  // any audio is allowed to play.
+  menuMusic.play().catch(() => {});
+  startButton.hidden = true;
+  statusEl.textContent = "Press an arrow key or swipe to play!";
+});
+
+function drawMenuScreen() {
+  ctx.fillStyle = COLOR_BACKGROUND;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = COLOR_SNAKE;
+  ctx.font = "bold 32px sans-serif";
+  ctx.fillText("SNAKE", canvas.width / 2, canvas.height / 2 - 10);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "14px sans-serif";
+  ctx.fillText("Press an arrow key or swipe to play", canvas.width / 2, canvas.height / 2 + 20);
 }
 
 // ---- Keyboard controls -----------------------------------------
@@ -221,6 +303,7 @@ function update() {
     saveHighScoreIfBeaten();
     updateStatusText();
     placeFood();
+    playSound(eatSound);
     // Note: we don't remove the tail here, so the snake grows by one.
   } else {
     snake.pop(); // remove the tail so the snake stays the same length
@@ -239,6 +322,7 @@ function hasHitWall(position) {
 function endGame() {
   isGameOver = true;
   clearInterval(loopIntervalId);
+  playSound(gameOverSound);
   statusEl.textContent =
     `Game Over! Score: ${score} | High Score: ${highScore} — press any arrow key to try again`;
 }
@@ -269,5 +353,9 @@ function drawCell(cell, color) {
 }
 
 // ---- Start the game -----------------------------------------
-resetGame();
-draw();
+// We don't call resetGame() yet — the snake doesn't actually move
+// until the player's first key press or swipe (see beginPlaying()).
+// Showing a menu screen first also lines up with audio autoplay
+// rules: browsers block all sound until a real user interaction
+// has happened.
+drawMenuScreen();

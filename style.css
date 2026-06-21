@@ -23,3 +23,22 @@ canvas {
      snake, not the page. */
   touch-action: none;
 }
+
+#controls {
+  margin-top: 16px;
+}
+
+#controls button {
+  background-color: #2a2a2a;
+  color: #ffffff;
+  border: 2px solid #4caf50;
+  border-radius: 6px;
+  padding: 8px 16px;
+  margin: 0 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+#controls button:hover {
+  background-color: #4caf50;
+}
