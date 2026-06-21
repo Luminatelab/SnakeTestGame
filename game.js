@@ -46,7 +46,7 @@ const gameOverSound = document.getElementById("gameOverSound");
 // starts moving, so it sits quietly behind the sound effects
 // instead of stopping and restarting.
 const MENU_MUSIC_VOLUME = 1.0;
-const GAMEPLAY_MUSIC_VOLUME = 0.35;
+const GAMEPLAY_MUSIC_VOLUME = 0.0875; // 75% quieter than before (was 0.35)
 const MUTE_KEY = "snakeMuted";
 let isMuted = localStorage.getItem(MUTE_KEY) === "true";
 
