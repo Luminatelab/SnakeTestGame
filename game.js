@@ -41,6 +41,23 @@ let score;
 let isGameOver;
 let loopIntervalId; // handle returned by setInterval, used to stop the loop
 
+// ---- High score (persisted in the browser) -----------------------------------------
+// localStorage saves simple key/value data directly in the browser,
+// and it sticks around between visits (even after closing the tab
+// or restarting the browser) until something clears it. It only
+// stores strings, so we convert back to a number when reading it.
+// This lives outside resetGame() because, unlike score, it should
+// NOT reset when a new game starts.
+const HIGH_SCORE_KEY = "snakeHighScore";
+let highScore = Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0;
+
+function saveHighScoreIfBeaten() {
+  if (score > highScore) {
+    highScore = score;
+    localStorage.setItem(HIGH_SCORE_KEY, String(highScore));
+  }
+}
+
 // ---- Setup / reset -----------------------------------------
 
 function resetGame() {
@@ -201,6 +218,7 @@ function update() {
   const ateFood = newHead.x === food.x && newHead.y === food.y;
   if (ateFood) {
     score += 1;
+    saveHighScoreIfBeaten();
     updateStatusText();
     placeFood();
     // Note: we don't remove the tail here, so the snake grows by one.
@@ -221,11 +239,12 @@ function hasHitWall(position) {
 function endGame() {
   isGameOver = true;
   clearInterval(loopIntervalId);
-  statusEl.textContent = `Game Over! Score: ${score} — press any arrow key to try again`;
+  statusEl.textContent =
+    `Game Over! Score: ${score} | High Score: ${highScore} — press any arrow key to try again`;
 }
 
 function updateStatusText() {
-  statusEl.textContent = `Score: ${score}`;
+  statusEl.textContent = `Score: ${score}  |  High Score: ${highScore}`;
 }
 
 // ---- Drawing -----------------------------------------
