@@ -1,50 +1,196 @@
+/* ============================================================
+   NEON ARCADE THEME — page styling
+   ------------------------------------------------------------
+   This file styles everything *around* the canvas (the page
+   background, the title, the buttons, the score text). The game
+   board itself is drawn by game.js. Everything here is pure CSS
+   — gradients, glows and shadows — so no images or downloaded
+   fonts are needed. The fonts listed are ones already built into
+   the operating system. */
+
+/* A reusable list of fonts the browser already has installed.
+   The browser tries each in order until it finds one it has, so
+   nothing is ever downloaded. */
+:root {
+  --font-display: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Courier New", ui-monospace, monospace;
+
+  /* Our neon palette, kept in one place so the whole page can be
+     re-tinted by changing just these few lines. */
+  --neon-cyan: #00f0ff;
+  --neon-magenta: #ff2e9a;
+  --neon-green: #39ff14;
+  --neon-yellow: #ffe500;
+}
+
 body {
-  background-color: #1e1e1e;
+  /* A deep synthwave gradient that matches the canvas background,
+     so the page and the game blend into one scene. `135deg` tilts
+     the gradient diagonally. */
+  background: linear-gradient(135deg, #1a0938 0%, #0a0420 55%, #05010f 100%);
   color: #ffffff;
-  font-family: sans-serif;
+  font-family: var(--font-display);
   text-align: center;
-  margin-top: 40px;
+
+  /* Make the body at least as tall as the screen and use flexbox to
+     stack everything in a centred column. (`min-height: 100vh` = "at
+     least 100% of the viewport height".) */
+  min-height: 100vh;
+  margin: 0;
+  padding: 24px 12px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+/* The big "Snake" heading, styled like a glowing neon sign.
+   `text-transform: uppercase` + letter-spacing gives it that bold
+   arcade-marquee feel, and the layered text-shadows are what make
+   it "glow" — each shadow is a soft coloured blur stacked behind
+   the letters. */
+h1 {
+  margin: 8px 0 0;
+  font-size: clamp(36px, 9vw, 64px); /* scales with screen, within limits */
+  font-weight: 800;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow:
+    0 0 6px #fff,
+    0 0 14px var(--neon-magenta),
+    0 0 28px var(--neon-magenta),
+    0 0 48px var(--neon-cyan);
 }
 
 canvas {
-  background-color: #000000;
-  border: 2px solid #4caf50;
+  /* The canvas keeps its internal 400x400 drawing grid (set by the
+     width/height attributes in index.html). Here we only set its
+     on-screen *display* size — scaling it down on small screens while
+     keeping it square and never larger than 400px. */
+  width: min(90vw, 70vh, 400px);
+  height: min(90vw, 70vh, 400px);
 
-  /* The canvas keeps its internal drawing grid at a fixed 400x400
-     resolution (set via the width/height attributes in index.html).
-     Here we only control its on-screen *display* size, scaling it
-     to fit smaller screens while staying a square and never
-     exceeding its native 400px size on larger screens. */
-  width: min(90vw, 90vh, 400px);
-  height: min(90vw, 90vh, 400px);
+  /* A glowing neon frame: a bright magenta border, with box-shadows
+     stacked to throw coloured light both outside (the glow) and
+     inside (`inset`) the screen, like a lit arcade bezel. */
+  border: 2px solid var(--neon-magenta);
+  border-radius: 8px;
+  box-shadow:
+    0 0 12px rgba(255, 46, 154, 0.7),
+    0 0 30px rgba(0, 240, 255, 0.35),
+    inset 0 0 24px rgba(0, 240, 255, 0.18);
 
-  /* Stops the browser from scrolling/zooming the page when the
-     player swipes on the canvas — we want swipes to control the
-     snake, not the page. */
+  /* Stops the browser from scrolling/zooming the page when the player
+     swipes on the canvas — we want swipes to steer the snake. */
   touch-action: none;
 }
 
 #controls {
-  margin-top: 16px;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
+/* The shared base look for every button: a glassy gradient fill, a
+   glowing border, uppercase mono text, and a soft outer glow. The
+   `transition` line makes hover/press changes animate smoothly
+   instead of snapping. */
 #controls button {
-  background-color: #2a2a2a;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
   color: #ffffff;
-  border: 2px solid #4caf50;
-  border-radius: 6px;
-  padding: 8px 16px;
-  margin: 0 6px;
-  font-size: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.25));
+  border: 2px solid var(--neon-cyan);
+  border-radius: 8px;
+  padding: 12px 22px;
+  font-size: 15px;
   cursor: pointer;
+  text-shadow: 0 0 8px var(--neon-cyan);
+  box-shadow:
+    0 0 10px rgba(0, 240, 255, 0.5),
+    inset 0 0 12px rgba(0, 240, 255, 0.25);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
 }
 
-/* Only apply the hover color on devices that have a real mouse.
-   Without this guard, touchscreens (like iOS Safari) treat the
-   first tap as "hovering" and need a second tap to actually click —
-   this @media check avoids that by skipping :hover on touch devices. */
+/* The Start button is the star of the menu, so it gets a bigger size
+   and a hotter magenta glow to draw the eye. It uses the magenta
+   accent instead of cyan to stand apart from the Mute button. */
+#startButton {
+  font-size: 18px;
+  padding: 16px 34px;
+  border-color: var(--neon-magenta);
+  text-shadow: 0 0 10px var(--neon-magenta);
+  box-shadow:
+    0 0 16px rgba(255, 46, 154, 0.7),
+    inset 0 0 16px rgba(255, 46, 154, 0.3);
+  /* A slow pulsing animation (defined at the bottom) makes the button
+     "breathe" so it feels alive and invites a press. */
+  animation: start-pulse 1.6s ease-in-out infinite;
+}
+
+/* Only apply hover effects on devices with a real mouse. Without this
+   guard, touchscreens treat the first tap as a "hover" and need a
+   second tap to actually click. On hover we lift the button slightly
+   and brighten its glow. */
 @media (hover: hover) {
   #controls button:hover {
-    background-color: #4caf50;
+    transform: translateY(-2px);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(0, 0, 0, 0.2));
+    box-shadow:
+      0 0 18px rgba(0, 240, 255, 0.8),
+      inset 0 0 16px rgba(0, 240, 255, 0.4);
+  }
+
+  #startButton:hover {
+    box-shadow:
+      0 0 26px rgba(255, 46, 154, 1),
+      inset 0 0 18px rgba(255, 46, 154, 0.45);
+  }
+}
+
+/* When a button is being pressed, push it down a touch so it feels
+   physical, like a real arcade button. */
+#controls button:active {
+  transform: translateY(1px);
+}
+
+/* The score / status line under the game, in glowing mono text to
+   match the in-game HUD. */
+#status {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.7);
+  min-height: 1.2em; /* reserves space so the layout doesn't jump */
+  margin: 0;
+}
+
+/* The keyframes for the Start button's gentle pulse: the glow grows
+   and shrinks between these two points, looping forever. */
+@keyframes start-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 16px rgba(255, 46, 154, 0.7),
+      inset 0 0 16px rgba(255, 46, 154, 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 28px rgba(255, 46, 154, 1),
+      inset 0 0 20px rgba(255, 46, 154, 0.45);
+  }
+}
+
+/* Respect users who've asked their system to reduce motion: turn off
+   the pulsing animation for them. This is a standard accessibility
+   courtesy. */
+@media (prefers-reduced-motion: reduce) {
+  #startButton {
+    animation: none;
   }
 }
