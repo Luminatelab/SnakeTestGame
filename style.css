@@ -39,6 +39,12 @@ canvas {
   cursor: pointer;
 }
 
-#controls button:hover {
-  background-color: #4caf50;
+/* Only apply the hover color on devices that have a real mouse.
+   Without this guard, touchscreens (like iOS Safari) treat the
+   first tap as "hovering" and need a second tap to actually click —
+   this @media check avoids that by skipping :hover on touch devices. */
+@media (hover: hover) {
+  #controls button:hover {
+    background-color: #4caf50;
+  }
 }
