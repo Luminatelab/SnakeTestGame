@@ -95,8 +95,10 @@ NOTE_DURATION = 0.22
 menu_melody = build_melody(MELODY_NOTES, NOTE_DURATION, volume=0.25)
 write_wav(f"{OUTPUT_DIR}/menu-music.wav", menu_melody)
 
-# ---- Gameplay music: same tune, 75% quieter -----------------
-gameplay_melody = build_melody(MELODY_NOTES, NOTE_DURATION, volume=0.0625)
+# ---- Gameplay music: same tune, at 10% the volume of the sound effects -----------------
+# The eat/game-over sounds below use the default volume of 0.25, so
+# 10% of that is 0.025.
+gameplay_melody = build_melody(MELODY_NOTES, NOTE_DURATION, volume=0.025)
 write_wav(f"{OUTPUT_DIR}/gameplay-music.wav", gameplay_melody)
 
 # ---- Eat sound: a quick rising blip -----------------

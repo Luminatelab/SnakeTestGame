@@ -77,6 +77,25 @@ function playSound(audio) {
   });
 }
 
+// iOS Safari only allows an <audio> element to play without a fresh
+// user gesture if that *same* element has already been played
+// successfully at least once *directly* inside a real tap/click.
+// menuMusic and gameplayMusic get unlocked naturally, since they're
+// played right inside the Start button handler / beginPlaying(). The
+// short sound effects don't get their first play() call until much
+// later (triggered from inside the game loop), so without this they
+// get silently blocked forever. We "prime" them here — play silently,
+// then immediately pause — right inside a real user gesture.
+function primeAudio(audio) {
+  audio
+    .play()
+    .then(() => {
+      audio.pause();
+      audio.currentTime = 0;
+    })
+    .catch(() => {});
+}
+
 // ---- Game state ------------------------------------------
 // All of these change as the game is played. Keeping them as
 // plain variables (rather than scattering state across the
@@ -193,6 +212,11 @@ function beginPlaying(requested) {
   menuMusic.pause();
   menuMusic.currentTime = 0;
   gameplayMusic.play().catch(() => {});
+  // Covers the case where the player moved before ever clicking
+  // Start — this keypress/swipe is still a real user gesture, so
+  // it can unlock the sound effects too.
+  primeAudio(eatSound);
+  primeAudio(gameOverSound);
 
   resetGame();
   nextDirection = requested;
@@ -202,6 +226,8 @@ startButton.addEventListener("click", () => {
   // This click is the "user interaction" browsers require before
   // any audio is allowed to play.
   menuMusic.play().catch(() => {});
+  primeAudio(eatSound);
+  primeAudio(gameOverSound);
   startButton.hidden = true;
   statusEl.textContent = "Press an arrow key or swipe to play!";
 });
