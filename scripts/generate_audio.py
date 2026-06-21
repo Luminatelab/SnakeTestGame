@@ -57,11 +57,11 @@ def square_wave_samples(freq, duration_sec, volume=0.25, fade_sec=0.01):
     return samples
 
 
-def build_melody(note_names, note_duration):
+def build_melody(note_names, note_duration, volume=0.25):
     """Builds a melody by playing each note in note_names one after another."""
     samples = []
     for name in note_names:
-        samples.extend(square_wave_samples(NOTES[name], note_duration))
+        samples.extend(square_wave_samples(NOTES[name], note_duration, volume=volume))
     return samples
 
 
@@ -80,14 +80,24 @@ def write_wav(filename, samples):
 
 OUTPUT_DIR = "assets/audio"
 
-# ---- Menu music: a short repeating chiptune phrase -----------------
+# Same tune for both the menu and in-game tracks (so it's recognizably
+# "the same vibe"), just rendered at two different volumes. We bake
+# the volume difference directly into the audio samples rather than
+# adjusting it in JavaScript at playback time — iOS Safari ignores
+# an <audio> element's .volume property set from JavaScript, so this
+# is the one approach guaranteed to actually sound quieter everywhere.
+MELODY_NOTES = ["A4", "C5", "D4", "E4", "D4", "C5", "A4", "G4"] * 2
+NOTE_DURATION = 0.22
+
+# ---- Menu music: full volume -----------------
 # `loop` is set in index.html, so this phrase repeats endlessly —
 # it just needs to sound good played back-to-back with itself.
-menu_melody = build_melody(
-    ["A4", "C5", "D4", "E4", "D4", "C5", "A4", "G4"] * 2,
-    note_duration=0.22,
-)
+menu_melody = build_melody(MELODY_NOTES, NOTE_DURATION, volume=0.25)
 write_wav(f"{OUTPUT_DIR}/menu-music.wav", menu_melody)
+
+# ---- Gameplay music: same tune, 75% quieter -----------------
+gameplay_melody = build_melody(MELODY_NOTES, NOTE_DURATION, volume=0.0625)
+write_wav(f"{OUTPUT_DIR}/gameplay-music.wav", gameplay_melody)
 
 # ---- Eat sound: a quick rising blip -----------------
 eat_sound = build_melody(["C5", "E5", "G5"], note_duration=0.09)
@@ -97,4 +107,4 @@ write_wav(f"{OUTPUT_DIR}/eat.wav", eat_sound)
 game_over_sound = build_melody(["G4", "E4", "C4", "A3"], note_duration=0.18)
 write_wav(f"{OUTPUT_DIR}/game-over.wav", game_over_sound)
 
-print("Done! Generated menu-music.wav, eat.wav, and game-over.wav in", OUTPUT_DIR)
+print("Done! Generated menu-music.wav, gameplay-music.wav, eat.wav, and game-over.wav in", OUTPUT_DIR)

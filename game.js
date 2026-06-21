@@ -30,54 +30,31 @@ const COLOR_BACKGROUND = "#000000";
 const statusEl = document.getElementById("status");
 const startButton = document.getElementById("startButton");
 const muteButton = document.getElementById("muteButton");
-const backgroundMusic = document.getElementById("backgroundMusic");
+const menuMusic = document.getElementById("menuMusic");
+const gameplayMusic = document.getElementById("gameplayMusic");
 const eatSound = document.getElementById("eatSound");
 const gameOverSound = document.getElementById("gameOverSound");
 
 // ---- Audio / mute -----------------------------------------
-// All three <audio> elements live in index.html; here we just
+// All four <audio> elements live in index.html; here we just
 // control *when* they play. Browsers refuse to play any sound
 // until the user has clicked/tapped/pressed a key at least once —
 // that's why music only starts from the Start button's click
 // handler, never automatically on page load.
 //
-// backgroundMusic plays continuously through both the menu and
-// actual gameplay — we just turn its volume down once the snake
-// starts moving, so it sits quietly behind the sound effects
-// instead of stopping and restarting.
-//
-// iOS Safari has a quirk: it ignores `audio.volume` set from
-// JavaScript entirely (it always plays <audio> elements at full
-// hardware volume). The reliable, cross-browser way to control
-// volume in code is the Web Audio API's GainNode, which iOS does
-// respect — so we route backgroundMusic through one of those
-// instead of setting its .volume property directly.
-const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-const musicGainNode = audioContext.createGain();
-audioContext
-  .createMediaElementSource(backgroundMusic)
-  .connect(musicGainNode)
-  .connect(audioContext.destination);
-
-function setMusicVolume(value) {
-  musicGainNode.gain.value = value;
-}
-
-// AudioContext also starts "suspended" until a user gesture resumes
-// it — same underlying browser rule as the play() restriction below.
-function unlockAudio() {
-  if (audioContext.state === "suspended") {
-    audioContext.resume();
-  }
-}
-
-const MENU_MUSIC_VOLUME = 1.0;
-const GAMEPLAY_MUSIC_VOLUME = 0.0875; // 75% quieter than before (was 0.35)
+// menuMusic and gameplayMusic are the *same* tune, but rendered as
+// two separate audio files at two different volumes (see
+// scripts/generate_audio.py) — we switch from one to the other when
+// gameplay begins. We do this instead of adjusting one file's
+// volume in JavaScript because iOS Safari ignores the .volume
+// property set from JavaScript on <audio> elements; baking the
+// volume directly into the audio file is the one approach that
+// reliably works everywhere.
 const MUTE_KEY = "snakeMuted";
 let isMuted = localStorage.getItem(MUTE_KEY) === "true";
 
 function applyMuteState() {
-  [backgroundMusic, eatSound, gameOverSound].forEach((audio) => {
+  [menuMusic, gameplayMusic, eatSound, gameOverSound].forEach((audio) => {
     audio.muted = isMuted;
   });
   muteButton.textContent = isMuted ? "🔇 Unmute" : "🔊 Mute";
@@ -206,18 +183,16 @@ function setDirection(requested) {
 }
 
 // Called the moment the player actually starts playing: hide the
-// Start button, lower the music to its quieter "in-game" volume
-// (rather than stopping it), and kick off a fresh game already
-// moving in the requested direction.
+// Start button, switch from the menu track to the quieter gameplay
+// track, and kick off a fresh game already moving in the requested
+// direction.
 function beginPlaying(requested) {
   isMenuActive = false;
   startButton.hidden = true;
 
-  unlockAudio();
-  setMusicVolume(GAMEPLAY_MUSIC_VOLUME);
-  // In case the player moved before ever clicking Start, the music
-  // won't have started yet — start it now instead of leaving it silent.
-  backgroundMusic.play().catch(() => {});
+  menuMusic.pause();
+  menuMusic.currentTime = 0;
+  gameplayMusic.play().catch(() => {});
 
   resetGame();
   nextDirection = requested;
@@ -226,9 +201,7 @@ function beginPlaying(requested) {
 startButton.addEventListener("click", () => {
   // This click is the "user interaction" browsers require before
   // any audio is allowed to play.
-  unlockAudio();
-  setMusicVolume(MENU_MUSIC_VOLUME);
-  backgroundMusic.play().catch(() => {});
+  menuMusic.play().catch(() => {});
   startButton.hidden = true;
   statusEl.textContent = "Press an arrow key or swipe to play!";
 });
